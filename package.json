@@ -1,0 +1,19 @@
+{
+  "name": "stop-letras",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sorteo de letras para jugar al Stop",
+  "scripts": {
+    "sync": "cap sync android",
+    "apk": "cap sync android && cd android && gradlew.bat assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor-community/keep-awake": "^7.1.0",
+    "@capacitor/android": "^7.6.10",
+    "@capacitor/app": "^7.1.0",
+    "@capacitor/core": "^7.6.10"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.6.10"
+  }
+}

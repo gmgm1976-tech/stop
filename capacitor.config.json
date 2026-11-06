@@ -1,0 +1,7 @@
+{
+  "appId": "com.odarit.stopletras",
+  "appName": "Stop",
+  "webDir": "www",
+  "backgroundColor": "#0b0a08",
+  "android": { "backgroundColor": "#0b0a08" }
+}

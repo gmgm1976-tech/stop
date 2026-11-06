@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b0a08">
+<title>Stop · Letras</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stop">
+<style>
+  /* Layout: una sola pantalla sin scroll.
+     Vertical: cabecera / medallón (se adapta al hueco) / controles, abecedario e historial.
+     Horizontal: medallón a la izquierda, todo lo demás a la derecha. */
+  :root {
+    --bg: #0b0a08;
+    --surface: #14120e;
+    --line: #2d281e;
+    --gold: #d4af6a;
+    --gold-hi: #f5e1a8;
+    --gold-deep: #8a6a2f;
+    --ink: #eee6d3;
+    --muted: #8f8673;
+    --alert: #ef5a3c;
+    --font-display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+    --font-ui: "Jost", "Futura", "Century Gothic", system-ui, sans-serif;
+    color-scheme: dark;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: 16px;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none; user-select: none;
+    background-image: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(212,175,106,.10), transparent 70%);
+  }
+  button { font-family: inherit; }
+  button:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 3px; }
+
+  .app {
+    height: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding-left: max(14px, env(safe-area-inset-left, 0px));
+    padding-right: max(14px, env(safe-area-inset-right, 0px));
+    padding-block: 10px 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: "top" "stage" "side";
+    gap: 10px;
+  }
+  @media (orientation: landscape) {
+    .app {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+      grid-template-rows: auto minmax(0, 1fr);
+      grid-template-areas: "stage top" "stage side";
+      column-gap: 24px;
+    }
+    .side .alphabet-wrap { flex: 1 1 0; }
+    .side .alphabet { height: 100%; grid-template-rows: repeat(3, minmax(0, 1fr)); }
+    .side .cell { aspect-ratio: auto; }
+  }
+
+  /* Cabecera */
+  .top { grid-area: top; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+  .brand h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-variation-settings: "opsz" 20;
+    font-weight: 800;
+    font-size: 1.6rem;
+    line-height: 1;
+    letter-spacing: .14em;
+    color: var(--gold);
+  }
+  .brand span { font-size: .66rem; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+  .icon-btn {
+    flex: none;
+    display: inline-grid; place-items: center;
+    width: 40px; height: 40px;
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--line); border-radius: 50%;
+    cursor: pointer;
+  }
+  .icon-btn:hover { color: var(--gold); border-color: var(--gold-deep); }
+  .icon-btn svg { width: 20px; height: 20px; }
+
+  /* Medallón */
+  .stage { grid-area: stage; display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 0; }
+  .medal-box { flex: 1 1 0; min-height: 0; width: 100%; container-type: size; display: grid; place-items: center; }
+  .medal {
+    position: relative;
+    width: min(100cqw, 100cqh, 460px);
+    height: min(100cqw, 100cqh, 460px);
+    display: grid; place-items: center;
+    container-type: size;
+  }
+  .medal::before { /* rayos art déco */
+    content: ""; position: absolute; inset: -4%;
+    border-radius: 50%;
+    background: repeating-conic-gradient(from 0deg, rgba(212,175,106,.16) 0deg 2deg, transparent 2deg 10deg);
+    -webkit-mask: radial-gradient(circle, transparent 54%, #000 55%, transparent 71%);
+            mask: radial-gradient(circle, transparent 54%, #000 55%, transparent 71%);
+  }
+  .medal.spinning::before { animation: rays 1.4s linear infinite; }
+  @keyframes rays { to { transform: rotate(360deg); } }
+  .ring {
+    position: absolute; inset: 9%;
+    border-radius: 50%;
+    border: 1px solid var(--gold-deep);
+    box-shadow: inset 0 0 0 5px var(--bg), inset 0 0 0 6px rgba(212,175,106,.35), 0 0 60px rgba(212,175,106,.08);
+    background: radial-gradient(circle at 50% 35%, #1d1a13, var(--surface) 70%);
+    transition: border-color .3s;
+  }
+  .medal.reveal .ring { animation: pulse .9s ease-out; }
+  @keyframes pulse {
+    0% { box-shadow: inset 0 0 0 5px var(--bg), inset 0 0 0 6px rgba(212,175,106,.35), 0 0 0 0 rgba(245,225,168,.55); }
+    100% { box-shadow: inset 0 0 0 5px var(--bg), inset 0 0 0 6px rgba(212,175,106,.35), 0 0 0 36px rgba(245,225,168,0); }
+  }
+  .letter {
+    position: relative;
+    font-family: var(--font-display);
+    font-weight: 800;
+    /* Tamaño óptico fijo: a tamaño grande la fuente adelgaza tanto los trazos finos que desaparecen. */
+    font-optical-sizing: none;
+    font-variation-settings: "opsz" 11;
+    font-size: 46cqw;
+    line-height: 1;
+    background: linear-gradient(170deg, var(--gold-hi) 10%, var(--gold) 50%, #a9843f 95%);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+    -webkit-text-stroke: .006em var(--gold);
+    translate: 0 -3%;
+  }
+  .medal.spinning .letter { opacity: .85; }
+  .medal.reveal .letter { animation: pop .6s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes pop { 0% { transform: scale(.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  .letter.empty { font-size: 32cqw; opacity: .5; }
+  .app.alarm .ring { border-color: var(--alert); animation: alarm .5s ease-in-out 6 alternate; }
+  @keyframes alarm { to { box-shadow: inset 0 0 0 5px var(--bg), inset 0 0 0 6px var(--alert), 0 0 50px rgba(239,90,60,.45); } }
+
+  .status { margin: 0; text-align: center; font-size: .9rem; color: var(--muted); line-height: 1.3; }
+  .status strong { font-weight: 500; font-size: .74rem; letter-spacing: .22em; text-transform: uppercase; color: var(--gold); margin-right: 6px; }
+
+  /* Lado de control */
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; }
+  .controls { display: flex; gap: 10px; align-items: stretch; }
+
+  .timer {
+    flex: none;
+    display: flex; align-items: center; gap: 8px;
+    height: 54px; padding: 0 14px 0 8px;
+    border: 1px solid var(--line); border-radius: 999px;
+    background: var(--surface); color: var(--gold);
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+  }
+  .timer svg { width: 36px; height: 36px; transform: rotate(-90deg); flex: none; }
+  .timer .track { stroke: var(--line); }
+  .timer .prog { stroke: var(--gold); transition: stroke-dashoffset .25s linear, stroke .3s; }
+  .timer-text { font-size: 1.25rem; font-weight: 500; min-width: 3.1ch; text-align: left; letter-spacing: .02em; }
+  .timer.off .timer-text { font-size: .8rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .timer.running { border-color: var(--gold-deep); color: var(--gold-hi); }
+  .timer.warn { color: var(--alert); border-color: var(--alert); }
+  .timer.warn .prog { stroke: var(--alert); }
+  .timer.done { color: #fff; background: var(--alert); border-color: var(--alert); animation: blink .5s steps(2) 6; }
+  .timer.done .prog, .timer.done .track { stroke: rgba(255,255,255,.35); }
+  @keyframes blink { 50% { filter: brightness(1.35); } }
+  .stop-btn {
+    flex: none; width: 54px; height: 54px;
+    border-radius: 50%; border: 1px solid var(--line);
+    background: var(--surface); color: var(--ink); cursor: pointer;
+    display: grid; place-items: center;
+  }
+  .stop-btn svg { width: 16px; height: 16px; }
+
+  .draw {
+    flex: 1 1 auto; min-width: 0;
+    height: 54px;
+    padding: 0 16px;
+    border: 0; border-radius: 999px;
+    background: linear-gradient(180deg, var(--gold-hi), var(--gold) 55%, var(--gold-deep));
+    color: #1a140a;
+    font: 600 .95rem/1 var(--font-ui);
+    letter-spacing: .16em; text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 10px 26px -12px rgba(212,175,106,.6), inset 0 1px 0 rgba(255,255,255,.5);
+    transition: transform .15s ease, filter .15s ease;
+  }
+  .draw:active { transform: translateY(1px) scale(.99); }
+  .draw:disabled { cursor: default; filter: saturate(.6) brightness(.8); }
+
+  .label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .label-row h2 { margin: 0; font: 500 .66rem/1 var(--font-ui); letter-spacing: .24em; text-transform: uppercase; color: var(--muted); }
+  .count { font-variant-numeric: tabular-nums; color: var(--gold); font-size: .8rem; letter-spacing: .06em; }
+
+  .alphabet-wrap { display: flex; flex-direction: column; gap: 6px; min-height: 0; container-type: inline-size; }
+  .alphabet {
+    display: grid;
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    gap: 5px;
+    padding: 8px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+    min-height: 0;
+  }
+  .cell {
+    aspect-ratio: 1;
+    min-height: 0;
+    display: grid; place-items: center;
+    border-radius: 7px;
+    font-family: var(--font-display);
+    font-variation-settings: "opsz" 14;
+    font-weight: 600;
+    font-size: clamp(.95rem, 4.6cqw, 1.5rem);
+    color: var(--ink);
+    background: rgba(255,255,255,.025);
+    border: 1px solid rgba(212,175,106,.12);
+    transition: background .12s, color .12s, transform .12s, opacity .3s;
+    position: relative;
+  }
+  .cell.used { color: var(--muted); opacity: .38; border-color: transparent; background: transparent; }
+  .cell.used::after {
+    content: ""; position: absolute; left: 22%; right: 22%; top: 50%;
+    height: 1px; background: var(--muted); transform: rotate(-20deg);
+  }
+  .cell.off { opacity: .14; border-style: dashed; }
+  .cell.hop { background: var(--gold); color: #1a140a; border-color: var(--gold-hi); transform: scale(1.08); }
+  .cell.current {
+    opacity: 1; color: #1a140a; border-color: var(--gold-hi);
+    background: linear-gradient(180deg, var(--gold-hi), var(--gold));
+    box-shadow: 0 0 16px rgba(212,175,106,.45);
+  }
+  .cell.current::after { display: none; }
+
+  /* Historial: una sola fila que se desliza en horizontal */
+  .history-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .history-row h2 { flex: none; margin: 0; font: 500 .66rem/1 var(--font-ui); letter-spacing: .24em; text-transform: uppercase; color: var(--muted); }
+  .history {
+    list-style: none; margin: 0; padding: 2px 0;
+    display: flex; gap: 6px;
+    overflow-x: auto; scrollbar-width: none;
+    min-width: 0; flex: 1;
+    -webkit-user-select: none;
+  }
+  .history::-webkit-scrollbar { display: none; }
+  .history li {
+    flex: none;
+    display: inline-flex; align-items: baseline; gap: 4px;
+    padding: 6px 9px 6px 8px;
+    border: 1px solid var(--line); border-radius: 9px;
+    background: var(--surface);
+  }
+  .history li small { font-size: .62rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .history li b { font-family: var(--font-display); font-variation-settings: "opsz" 14; font-size: 1.1rem; color: var(--gold); font-weight: 600; line-height: 1; }
+  .history li.latest { border-color: var(--gold-deep); }
+  .history li.latest b { color: var(--gold-hi); }
+  .history .empty-note { color: var(--muted); font-size: .82rem; border-style: dashed; background: transparent; padding: 8px 10px; }
+
+  /* Ajustes */
+  .sheet-back {
+    position: fixed; inset: 0; z-index: 20;
+    background: rgba(5,4,3,.72);
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 12px max(12px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+  }
+  .sheet {
+    width: min(100%, 460px);
+    max-height: 100%;
+    overflow-y: auto;
+    background: #17140f;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 18px 18px 16px;
+    display: flex; flex-direction: column; gap: 16px;
+    box-shadow: 0 -20px 60px rgba(0,0,0,.5);
+    animation: up .22s ease-out;
+  }
+  @keyframes up { from { transform: translateY(24px); opacity: 0; } }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; }
+  .sheet-head h2 { margin: 0; font-family: var(--font-display); font-variation-settings: "opsz" 20; font-weight: 600; font-size: 1.3rem; color: var(--gold); }
+  .group { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .group-title { font-size: .66rem; letter-spacing: .24em; text-transform: uppercase; color: var(--muted); }
+  .stepper { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .stepper button {
+    width: 48px; height: 48px; border-radius: 50%;
+    border: 1px solid var(--gold-deep); background: transparent; color: var(--gold-hi);
+    font-size: 1.5rem; line-height: 1; cursor: pointer;
+  }
+  .stepper button:disabled { opacity: .3; cursor: default; }
+  .stepper output { font-size: 2.4rem; font-weight: 500; color: var(--gold-hi); font-variant-numeric: tabular-nums; }
+  .presets { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    flex: 1 1 0; min-width: 56px;
+    padding: 10px 0; border-radius: 999px;
+    border: 1px solid var(--line); background: transparent; color: var(--ink);
+    font-size: .9rem; font-variant-numeric: tabular-nums; cursor: pointer;
+  }
+  .chip.on { border-color: var(--gold); color: #1a140a; background: var(--gold); }
+
+  .toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; color: var(--ink); font-size: .95rem; }
+  .toggle small { display: block; color: var(--muted); font-size: .8rem; margin-top: 2px; }
+  .toggle input { position: absolute; opacity: 0; pointer-events: none; }
+  .switch { width: 42px; height: 24px; border-radius: 999px; background: var(--line); position: relative; transition: background .2s; flex: none; }
+  .switch::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
+    border-radius: 50%; background: var(--muted); transition: transform .2s, background .2s;
+  }
+  .toggle input:checked + .switch { background: var(--gold-deep); }
+  .toggle input:checked + .switch::after { transform: translateX(18px); background: var(--gold-hi); }
+  .toggle input:focus-visible + .switch { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
+
+  .text-btn {
+    background: transparent; border: 1px solid var(--line); color: var(--ink);
+    border-radius: 999px; padding: 11px 16px; cursor: pointer;
+    font: 500 .78rem/1 var(--font-ui); letter-spacing: .14em; text-transform: uppercase;
+  }
+  .text-btn.danger { border-color: var(--alert); color: var(--alert); }
+  .text-btn.primary { border: 0; background: var(--gold); color: #1a140a; }
+  .reset-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .reset-line span { color: var(--muted); font-size: .88rem; flex: 1 1 100%; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .medal.spinning::before, .medal.reveal .ring, .medal.reveal .letter, .app.alarm .ring, .timer.done, .sheet { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <div class="brand">
+      <h1>STOP</h1>
+      <span>Sorteo de letras</span>
+    </div>
+    <button class="icon-btn" id="settingsBtn" type="button" aria-label="Ajustes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>
+      </svg>
+    </button>
+  </header>
+
+  <section class="stage" aria-label="Letra de la ronda">
+    <div class="medal-box">
+      <div class="medal" id="medal">
+        <div class="ring"></div>
+        <div class="letter empty" id="bigLetter" aria-live="polite">?</div>
+      </div>
+    </div>
+    <p class="status"><strong id="statusTop">Nueva partida</strong><span id="statusSub">Pulsa para sacar la primera letra</span></p>
+  </section>
+
+  <section class="side">
+    <div class="controls">
+      <button class="timer" id="timerBtn" type="button" aria-label="Cronómetro. Toca para cambiar el tiempo">
+        <svg viewBox="0 0 36 36" aria-hidden="true">
+          <circle class="track" cx="18" cy="18" r="15" fill="none" stroke-width="3"/>
+          <circle class="prog" id="timerProg" cx="18" cy="18" r="15" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="94.25" stroke-dashoffset="0"/>
+        </svg>
+        <span class="timer-text" id="timerText">2:00</span>
+      </button>
+      <button class="stop-btn" id="timerStop" type="button" aria-label="Parar cronómetro" hidden>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2" fill="currentColor"/></svg>
+      </button>
+      <button class="draw" id="drawBtn" type="button">Sacar letra</button>
+    </div>
+
+    <div class="alphabet-wrap">
+      <div class="label-row">
+        <h2>Abecedario</h2>
+        <span class="count" id="remaining">27 por salir</span>
+      </div>
+      <div class="alphabet" id="alphabet" role="list"></div>
+    </div>
+
+    <div class="history-row">
+      <h2>Jugadas</h2>
+      <ol class="history" id="history"></ol>
+    </div>
+  </section>
+</div>
+
+<div class="sheet-back" id="sheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-head">
+      <h2 id="sheetTitle">Ajustes</h2>
+      <button class="text-btn primary" id="sheetClose" type="button">Listo</button>
+    </div>
+
+    <div class="group">
+      <span class="group-title">Tiempo por ronda</span>
+      <div class="stepper">
+        <button type="button" id="timeMinus" aria-label="Quitar 15 segundos">−</button>
+        <output id="timeValue">2:00</output>
+        <button type="button" id="timePlus" aria-label="Añadir 15 segundos">+</button>
+      </div>
+      <div class="presets" id="presets"></div>
+      <label class="toggle" for="timerOn">
+        <span>Cronómetro<small>Empieza solo cuando sale la letra</small></span>
+        <input type="checkbox" id="timerOn">
+        <span class="switch" aria-hidden="true"></span>
+      </label>
+    </div>
+
+    <div class="group">
+      <label class="toggle" for="soundOn">
+        <span>Sonido<small>Ruleta, aviso de últimos segundos y sirena</small></span>
+        <input type="checkbox" id="soundOn">
+        <span class="switch" aria-hidden="true"></span>
+      </label>
+      <label class="toggle" for="hardToggle">
+        <span>Quitar letras difíciles<small>K, Ñ, Q, W, X, Y, Z</small></span>
+        <input type="checkbox" id="hardToggle">
+        <span class="switch" aria-hidden="true"></span>
+      </label>
+    </div>
+
+    <div class="group">
+      <div class="reset-line" id="resetArea"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const ALPHABET = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ".split("");
+  const HARD = ["K", "Ñ", "Q", "W", "X", "Y", "Z"];
+  const PRESETS = [60, 90, 120, 180];
+  const STORE_KEY = "stop-letras-v1";
+  const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const $ = (id) => document.getElementById(id);
+  const el = {
+    app: $("app"), alphabet: $("alphabet"), big: $("bigLetter"), medal: $("medal"),
+    top: $("statusTop"), sub: $("statusSub"), draw: $("drawBtn"),
+    remaining: $("remaining"), history: $("history"),
+    timerBtn: $("timerBtn"), timerText: $("timerText"), timerProg: $("timerProg"), timerStop: $("timerStop"),
+    sheet: $("sheet"), settingsBtn: $("settingsBtn"), sheetClose: $("sheetClose"),
+    timeMinus: $("timeMinus"), timePlus: $("timePlus"), timeValue: $("timeValue"), presets: $("presets"),
+    timerOn: $("timerOn"), soundOn: $("soundOn"), hard: $("hardToggle"), reset: $("resetArea")
+  };
+
+  let state = { used: [], noHard: false, sound: true, duration: 120, timerOn: true };
+  let spinning = false;
+  let confirming = false;
+  const cells = {};
+
+  function load(initial) {
+    let s = null;
+    if (initial && Array.isArray(initial.used)) s = initial;
+    else { try { const raw = localStorage.getItem(STORE_KEY); if (raw) s = JSON.parse(raw); } catch (e) {} }
+    if (!s) return;
+    if (Array.isArray(s.used)) state.used = s.used.filter((l) => ALPHABET.includes(l));
+    state.noHard = !!s.noHard;
+    state.sound = s.sound !== false;
+    state.timerOn = s.timerOn !== false;
+    if (Number.isFinite(s.duration)) state.duration = clampTime(s.duration);
+  }
+  function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }
+
+  const inPlay = () => ALPHABET.filter((l) => !(state.noHard && HARD.includes(l)));
+  const pool = () => inPlay().filter((l) => !state.used.includes(l));
+  const clampTime = (s) => Math.min(600, Math.max(15, Math.round(s / 15) * 15));
+  const fmt = (s) => Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+
+  // ---------- Sonido ----------
+  let ctx = null;
+  function audio() {
+    if (!state.sound) return null;
+    try {
+      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === "suspended") ctx.resume();
+      return ctx;
+    } catch (e) { return null; }
+  }
+  function tone(freq, dur, vol, type, when) {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime + (when || 0);
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type || "sine"; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.02);
+  }
+  const tick = () => tone(1500, 0.04, 0.05, "triangle");
+  const beep = () => tone(880, 0.12, 0.12, "square");
+  function chime() { [659, 880, 1319].forEach((f, i) => tone(f, 0.6, 0.08, "sine", i * 0.09)); }
+  function siren() {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime, dur = 3.2;
+    const f = a.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 2600;
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.22, t + 0.06);
+    g.gain.setValueAtTime(0.22, t + dur - 0.3);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    f.connect(g).connect(a.destination);
+    [0, 7].forEach((det) => {
+      const o = a.createOscillator();
+      o.type = "sawtooth"; o.detune.value = det;
+      o.frequency.setValueAtTime(620, t);
+      for (let i = 1; i <= 8; i++) o.frequency.linearRampToValueAtTime(i % 2 ? 1250 : 620, t + i * 0.4);
+      o.connect(f); o.start(t); o.stop(t + dur + 0.05);
+    });
+  }
+
+  // ---------- Pantalla siempre encendida ----------
+  let lock = null;
+  async function keepAwake() {
+    try {
+      const plug = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.KeepAwake;
+      if (plug) { await plug.keepAwake(); return; }
+      if (!lock && navigator.wakeLock) {
+        lock = await navigator.wakeLock.request("screen");
+        lock.addEventListener("release", () => { lock = null; });
+      }
+    } catch (e) {}
+  }
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { keepAwake(); updateTimer(); } });
+
+  // ---------- Cronómetro ----------
+  const CIRC = 94.25;
+  const timer = { endAt: 0, running: false, done: false, iv: null, lastSec: null };
+
+  function startTimer() {
+    stopTimer();
+    if (!state.timerOn) return;
+    timer.endAt = Date.now() + state.duration * 1000;
+    timer.running = true;
+    timer.iv = setInterval(updateTimer, 200);
+    keepAwake();
+    updateTimer();
+  }
+  function stopTimer() {
+    clearInterval(timer.iv);
+    timer.running = false; timer.done = false; timer.lastSec = null;
+    el.app.classList.remove("alarm");
+    renderTimer(state.duration, 1);
+  }
+  function updateTimer() {
+    if (!timer.running) return;
+    const msLeft = timer.endAt - Date.now();
+    const sec = Math.max(0, Math.ceil(msLeft / 1000));
+    if (sec !== timer.lastSec) {
+      if (sec > 0 && sec <= 5) beep();
+      timer.lastSec = sec;
+    }
+    if (msLeft <= 0) { finishTimer(); return; }
+    renderTimer(sec, msLeft / (state.duration * 1000));
+  }
+  function finishTimer() {
+    clearInterval(timer.iv);
+    timer.running = false; timer.done = true;
+    renderTimer(0, 0);
+    siren();
+    if (navigator.vibrate) { try { navigator.vibrate([500, 150, 500, 150, 800]); } catch (e) {} }
+    el.app.classList.remove("alarm"); void el.app.offsetWidth; el.app.classList.add("alarm");
+    setTimeout(() => el.app.classList.remove("alarm"), 3200);
+  }
+  function renderTimer(sec, frac) {
+    const b = el.timerBtn;
+    b.classList.toggle("off", !state.timerOn);
+    b.classList.toggle("running", timer.running);
+    b.classList.toggle("warn", timer.running && sec <= 10);
+    b.classList.toggle("done", timer.done);
+    el.timerText.textContent = !state.timerOn ? "Sin tiempo" : timer.done ? "¡Stop!" : fmt(sec);
+    el.timerProg.style.strokeDashoffset = String(CIRC * (1 - Math.max(0, Math.min(1, frac))));
+    el.timerStop.hidden = !timer.running;
+  }
+
+  // ---------- Tablero ----------
+  function buildGrid() {
+    ALPHABET.forEach((l) => {
+      const c = document.createElement("div");
+      c.className = "cell"; c.textContent = l; c.setAttribute("role", "listitem");
+      el.alphabet.appendChild(c); cells[l] = c;
+    });
+    PRESETS.forEach((s) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.dataset.s = s; b.textContent = fmt(s);
+      b.onclick = () => setDuration(s);
+      el.presets.appendChild(b);
+    });
+  }
+
+  function render() {
+    const current = state.used[state.used.length - 1] || null;
+    const total = inPlay().length;
+    const left = pool().length;
+
+    ALPHABET.forEach((l) => {
+      const c = cells[l];
+      c.className = "cell";
+      const off = state.noHard && HARD.includes(l) && !state.used.includes(l);
+      if (off) c.classList.add("off");
+      if (state.used.includes(l)) c.classList.add("used");
+      if (l === current) c.classList.add("current");
+      c.setAttribute("aria-label", l + (l === current ? ", letra actual" : state.used.includes(l) ? ", ya salió" : off ? ", fuera de juego" : ", por salir"));
+    });
+
+    el.big.textContent = current || "?";
+    el.big.classList.toggle("empty", !current);
+    el.remaining.textContent = left === 1 ? "1 por salir" : left + " por salir";
+
+    if (!current) {
+      el.top.textContent = "Nueva partida";
+      el.sub.textContent = "Pulsa para sacar la primera letra";
+    } else if (left === 0) {
+      el.top.textContent = "Completo";
+      el.sub.textContent = "Habéis jugado las " + state.used.length + " letras";
+    } else {
+      el.top.textContent = "Ronda " + state.used.length + "/" + total;
+      el.sub.textContent = "Quedan " + left + (left === 1 ? " letra" : " letras");
+    }
+
+    el.draw.textContent = left === 0 && current ? "Otra partida" : current ? "Siguiente" : "Sacar letra";
+    el.draw.disabled = spinning;
+
+    el.history.innerHTML = "";
+    if (!state.used.length) {
+      const li = document.createElement("li");
+      li.className = "empty-note";
+      li.textContent = "Aún no ha salido ninguna letra";
+      el.history.appendChild(li);
+    } else {
+      state.used.forEach((l, i) => {
+        const li = document.createElement("li");
+        if (i === state.used.length - 1) li.className = "latest";
+        li.innerHTML = "<small>" + (i + 1) + "</small><b>" + l + "</b>";
+        el.history.appendChild(li);
+      });
+      el.history.scrollLeft = el.history.scrollWidth;
+    }
+
+    renderSettings();
+    if (!timer.running && !timer.done) renderTimer(state.duration, 1);
+  }
+
+  function renderSettings() {
+    el.timeValue.textContent = fmt(state.duration);
+    el.timeMinus.disabled = state.duration <= 15;
+    el.timePlus.disabled = state.duration >= 600;
+    el.presets.querySelectorAll(".chip").forEach((b) => b.classList.toggle("on", Number(b.dataset.s) === state.duration));
+    el.timerOn.checked = state.timerOn;
+    el.soundOn.checked = state.sound;
+    el.hard.checked = state.noHard;
+
+    el.reset.innerHTML = "";
+    if (!confirming) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "text-btn"; b.id = "newGameBtn";
+      b.textContent = "Nueva partida";
+      b.disabled = !state.used.length;
+      if (!state.used.length) b.style.opacity = ".4";
+      b.onclick = () => { confirming = true; renderSettings(); $("confirmYes").focus(); };
+      el.reset.appendChild(b);
+    } else {
+      const t = document.createElement("span"); t.textContent = "¿Borrar las " + state.used.length + " letras jugadas?";
+      const yes = document.createElement("button");
+      yes.type = "button"; yes.className = "text-btn danger"; yes.id = "confirmYes"; yes.textContent = "Sí, empezar";
+      yes.onclick = () => { newGame(); closeSheet(); };
+      const no = document.createElement("button");
+      no.type = "button"; no.className = "text-btn"; no.id = "confirmNo"; no.textContent = "Cancelar";
+      no.onclick = () => { confirming = false; renderSettings(); };
+      el.reset.append(t, yes, no);
+    }
+  }
+
+  function setDuration(s) {
+    state.duration = clampTime(s);
+    save();
+    renderSettings();
+    if (!timer.running) { timer.done = false; renderTimer(state.duration, 1); }
+  }
+
+  function openSheet() { confirming = false; renderSettings(); el.sheet.hidden = false; el.sheetClose.focus(); }
+  function closeSheet() { el.sheet.hidden = true; confirming = false; }
+
+  function newGame() {
+    state.used = []; confirming = false; save();
+    stopTimer();
+    el.medal.classList.remove("reveal");
+    render();
+  }
+
+  // ---------- Sorteo ----------
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  async function draw() {
+    if (spinning) return;
+    audio();
+    const avail = pool();
+    if (!avail.length) { newGame(); return; }
+    keepAwake();
+    stopTimer();
+    const target = avail[Math.floor(Math.random() * avail.length)];
+
+    spinning = true;
+    render();
+    Object.values(cells).forEach((c) => c.classList.remove("current"));
+    el.medal.classList.remove("reveal");
+    el.big.classList.remove("empty");
+
+    if (!reduceMotion && avail.length > 1) {
+      el.medal.classList.add("spinning");
+      const hops = 26;
+      let prev = null;
+      for (let i = 0; i < hops; i++) {
+        let l;
+        if (i === hops - 1) l = target;
+        else { do { l = avail[Math.floor(Math.random() * avail.length)]; } while (l === prev); }
+        if (prev) cells[prev].classList.remove("hop");
+        cells[l].classList.add("hop");
+        el.big.textContent = l;
+        tick();
+        prev = l;
+        const p = i / (hops - 1);
+        await wait(45 + 300 * Math.pow(p, 2.6));
+      }
+      cells[target].classList.remove("hop");
+      el.medal.classList.remove("spinning");
+    }
+
+    state.used.push(target);
+    save();
+    spinning = false;
+    render();
+    void el.medal.offsetWidth;
+    el.medal.classList.add("reveal");
+    chime();
+    if (navigator.vibrate) { try { navigator.vibrate(40); } catch (e) {} }
+    startTimer();
+  }
+
+  // ---------- Eventos ----------
+  el.draw.addEventListener("click", draw);
+  el.timerBtn.addEventListener("click", () => { if (timer.done) { stopTimer(); return; } openSheet(); });
+  el.timerStop.addEventListener("click", stopTimer);
+  el.settingsBtn.addEventListener("click", openSheet);
+  el.sheetClose.addEventListener("click", closeSheet);
+  el.sheet.addEventListener("click", (e) => { if (e.target === el.sheet) closeSheet(); });
+  el.timeMinus.addEventListener("click", () => setDuration(state.duration - 15));
+  el.timePlus.addEventListener("click", () => setDuration(state.duration + 15));
+  el.timerOn.addEventListener("change", () => { state.timerOn = el.timerOn.checked; save(); if (!state.timerOn) stopTimer(); render(); });
+  el.soundOn.addEventListener("change", () => { state.sound = el.soundOn.checked; save(); if (state.sound) tick(); });
+  el.hard.addEventListener("change", () => { state.noHard = el.hard.checked; save(); render(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !el.sheet.hidden) { closeSheet(); return; }
+    if ((e.code === "Space" || e.key === "Enter") && e.target === document.body && el.sheet.hidden) { e.preventDefault(); draw(); }
+  });
+  // Botón "atrás" de Android: cierra los ajustes si están abiertos
+  try {
+    const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if (App) App.addListener("backButton", () => { if (!el.sheet.hidden) closeSheet(); else App.minimizeApp(); });
+  } catch (e) {}
+
+  function start(initial) {
+    load(initial);
+    buildGrid();
+    render();
+    keepAwake();
+    window.claude?.hot?.snapshot?.(() => ({ used: state.used, noHard: state.noHard, sound: state.sound, duration: state.duration, timerOn: state.timerOn }));
+  }
+  // Funcionar sin conexión cuando se abre como web (no dentro de la APK)
+  if ("serviceWorker" in navigator && location.protocol === "https:" && !window.Capacitor) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
+</body>
+</html>
