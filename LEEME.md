@@ -1,5 +1,8 @@
 # Stop · Sorteo de letras
 
+**Web (iPhone y cualquier móvil):** https://gmgm1976-tech.github.io/stop/
+En iPhone: abrir en Safari → Compartir → «Añadir a pantalla de inicio».
+
 - `Stop.apk` — la app lista para instalar en Android.
 - `www/index.html` — la app (HTML). Cualquier cambio se hace aquí.
 - `stop.html` — la versión publicada como artefacto en claude.ai (se genera a partir de `www/index.html`).
@@ -22,3 +25,11 @@ Requisitos ya instalados en este PC: Node, Java 21 y Android SDK en
 Pasa `Stop.apk` al teléfono (cable, Drive, WhatsApp…), ábrelo y permite
 "Instalar apps de origen desconocido" cuando lo pida.
 
+
+## Actualizar la web
+
+Cada cambio que se sube a GitHub (rama `main`) se publica solo en un minuto:
+
+```bash
+git add -A && git commit -m "Cambios" && git push
+```
