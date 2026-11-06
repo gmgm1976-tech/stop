@@ -1,5 +1,5 @@
 // Guarda la app en el móvil para que funcione sin conexión.
-const CACHE = "stop-v2";
+const CACHE = "stop-v3";
 const FILES = [
   "./", "./index.html", "./manifest.webmanifest",
   "./fonts/fonts.css", "./fonts/BodoniModa-600.woff2", "./fonts/BodoniModa-800.woff2",

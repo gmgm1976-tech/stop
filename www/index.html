@@ -139,7 +139,9 @@
     font-variation-settings: "opsz" 11;
     font-size: 46cqw;
     line-height: 1;
-    background: linear-gradient(170deg, var(--gold-hi) 10%, var(--gold) 50%, #a9843f 95%);
+    /* Margen para que la tilde de la Ñ y la cola de la Q también queden dentro del relleno dorado. */
+    padding: .28em .18em;
+    background: linear-gradient(170deg, var(--gold-hi) 18%, var(--gold) 50%, #a9843f 85%);
     -webkit-background-clip: text; background-clip: text;
     color: transparent;
     -webkit-text-stroke: .006em var(--gold);
